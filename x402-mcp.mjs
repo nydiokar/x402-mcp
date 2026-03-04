@@ -1,6 +1,6 @@
-import { Server } from "@modelcontextprotocol/sdk/server/index.js";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
+import { z } from "zod";
 import { wrapFetchWithPayment, x402Client } from "@x402/fetch";
 import { ExactSvmScheme } from "@x402/svm/exact/client";
 import { createKeyPairSignerFromBytes } from "@solana/kit";
@@ -34,46 +34,29 @@ const client = new x402Client();
 client.register("solana:*", new AgentExactSvmScheme(signer));
 const fetchWithPayment = wrapFetchWithPayment(fetch, client);
 
-const server = new Server(
-  { name: "x402-wallet", version: "1.0.0" },
-  { capabilities: { tools: {} } }
-);
+const server = new McpServer({ name: "x402-wallet", version: "1.0.0" });
 
-server.setRequestHandler(ListToolsRequestSchema, async () => ({
-  tools: [
-    {
-      name: "fetch_with_payment",
-      description:
-        "Fetch a URL. If the server responds with HTTP 402 Payment Required, automatically constructs and sends a Solana payment, then retries the request.",
-      inputSchema: {
-        type: "object",
-        properties: {
-          url: { type: "string", description: "The URL to fetch" },
-          method: { type: "string", description: "HTTP method", default: "GET" },
-          body: { type: "string", description: "Request body (optional)" },
-        },
-        required: ["url"],
-      },
+server.registerTool(
+  "fetch_with_payment",
+  {
+    description:
+      "Fetch a URL. If the server responds with HTTP 402 Payment Required, automatically constructs and sends a Solana payment, then retries the request.",
+    inputSchema: {
+      url: z.string().describe("The URL to fetch"),
+      method: z.string().default("GET").describe("HTTP method"),
+      body: z.string().optional().describe("Request body (optional)"),
     },
-  ],
-}));
-
-server.setRequestHandler(CallToolRequestSchema, async (req) => {
-  if (req.params.name !== "fetch_with_payment") {
-    throw new Error(`Unknown tool: ${req.params.name}`);
+  },
+  async ({ url, method, body }) => {
+    const res = await fetchWithPayment(url, {
+      method,
+      ...(body ? { body } : {}),
+    });
+    const text = await res.text();
+    return {
+      content: [{ type: "text", text: `HTTP ${res.status}\n\n${text}` }],
+    };
   }
-
-  const { url, method = "GET", body } = req.params.arguments;
-
-  const res = await fetchWithPayment(url, {
-    method,
-    ...(body ? { body } : {}),
-  });
-
-  const text = await res.text();
-  return {
-    content: [{ type: "text", text: `HTTP ${res.status}\n\n${text}` }],
-  };
-});
+);
 
 await server.connect(new StdioServerTransport());
