@@ -1,0 +1,6 @@
+{
+  "enabledMcpjsonServers": [
+    "x402-wallet"
+  ],
+  "enableAllProjectMcpServers": true
+}

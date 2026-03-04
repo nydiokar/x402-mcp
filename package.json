@@ -1,0 +1,16 @@
+{
+  "name": "mcp-x402",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "start": "node x402-mcp.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.27.1",
+    "@scure/base": "^2.0.0",
+    "@solana/kit": "^5.5.1",
+    "@x402/core": "^2.5.0",
+    "@x402/fetch": "^2.5.0",
+    "@x402/svm": "^2.5.0"
+  }
+}

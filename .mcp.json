@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "x402-wallet": {
+      "command": "node",
+      "args": ["C:/Users/YOUR_USERNAME/mcp-x402/x402-mcp.mjs"],
+      "env": {
+      "SOLANA_PRIVATE_KEY": ""
+    }
+  }
+}
+}
